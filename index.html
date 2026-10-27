@@ -1,0 +1,1583 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⚡ EC1 Student Performance Analyzer</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "Segoe UI", system-ui, sans-serif; background: #f0f2f5; color: #1f2328; min-height: 100vh; }
+
+  /* ── LOGIN SCREEN ── */
+  .login-screen { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: linear-gradient(135deg,#1a237e 0%,#283593 60%,#3949ab 100%); padding: 20px; }
+  .login-card { background: #fff; border-radius: 16px; padding: 40px 36px; width: 100%; max-width: 400px; box-shadow: 0 20px 60px #0004; }
+  .login-logo  { text-align: center; font-size: 44px; margin-bottom: 8px; }
+  .login-title { text-align: center; font-size: 20px; font-weight: 800; color: #1a237e; margin-bottom: 4px; }
+  .login-sub   { text-align: center; font-size: 13px; color: #888; margin-bottom: 28px; }
+  .login-card label { display: block; font-size: 12px; font-weight: 700; color: #555; margin-bottom: 5px; margin-top: 14px; }
+  .login-card input { width: 100%; padding: 10px 12px; border: 1.5px solid #ddd; border-radius: 8px; font-size: 14px; outline: none; transition: border-color .15s; }
+  .login-card input:focus { border-color: #3949ab; }
+  .btn-login { width: 100%; margin-top: 20px; padding: 12px; background: #1a237e; color: #fff; border: none; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: pointer; transition: background .15s; }
+  .btn-login:hover { background: #283593; }
+  .login-err { color: #d32f2f; font-size: 12px; margin-top: 10px; text-align: center; min-height: 18px; }
+  .login-divider { text-align: center; margin: 16px 0 0; font-size: 12px; color: #aaa; }
+
+  /* ── SETUP SCREEN ── */
+  .setup-screen { display: none; align-items: center; justify-content: center; min-height: 100vh; background: #f0f2f5; padding: 20px; }
+  .setup-card { background: #fff; border-radius: 16px; padding: 36px; width: 100%; max-width: 560px; box-shadow: 0 4px 24px #0002; }
+  .setup-card h2 { font-size: 18px; font-weight: 800; color: #1a237e; margin-bottom: 8px; }
+  .setup-card p  { font-size: 13px; color: #666; line-height: 1.7; margin-bottom: 20px; }
+  .setup-step { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 14px; }
+  .step-n { width: 26px; height: 26px; border-radius: 50%; background: #1a237e; color: #fff; font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; }
+  .step-b { flex: 1; }
+  .step-b b { display: block; font-size: 13px; color: #333; margin-bottom: 3px; }
+  .step-b span { font-size: 12px; color: #777; }
+  .setup-input-row { display: flex; gap: 8px; margin-top: 8px; }
+  .setup-input-row input { flex: 1; padding: 8px 10px; border: 1.5px solid #ddd; border-radius: 7px; font-size: 13px; outline: none; font-family: monospace; }
+  .setup-input-row input:focus { border-color: #3949ab; }
+  .btn-setup-save { padding: 9px 18px; background: #1a237e; color: #fff; border: none; border-radius: 7px; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+  .setup-note { background: #e8eaf6; border-radius: 8px; padding: 12px 14px; font-size: 12px; color: #3949ab; line-height: 1.6; margin-top: 16px; }
+  code { background: #f0f0f0; padding: 1px 5px; border-radius: 4px; font-size: 12px; color: #c7254e; font-family: monospace; }
+
+  /* ── APP SHELL ── */
+  #app { display: none; flex-direction: column; height: 100vh; }
+
+  /* HEADER */
+  header { background: #1a237e; color: #fff; padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 8px #0003; flex-shrink: 0; }
+  header h1 { font-size: 16px; font-weight: 800; }
+  header p  { font-size: 11px; color: #c5cae9; margin-top: 1px; }
+  .header-right { display: flex; align-items: center; gap: 10px; }
+  .sync-dot { width: 8px; height: 8px; border-radius: 50%; background: #69f0ae; box-shadow: 0 0 6px #69f0ae; flex-shrink: 0; }
+  .sync-dot.off { background: #ff5252; box-shadow: 0 0 6px #ff5252; }
+  .sync-label { font-size: 11px; color: #c5cae9; }
+  .btn-sm { padding: 6px 12px; border-radius: 7px; border: none; cursor: pointer; font-size: 12px; font-weight: 700; transition: opacity .15s; }
+  .btn-sm:hover { opacity: .85; }
+  .btn-white   { background: #fff; color: #1a237e; }
+  .btn-outline { background: transparent; color: #fff; border: 1.5px solid #ffffff44; }
+  .user-chip   { background: #ffffff18; border: 1px solid #ffffff30; border-radius: 20px; padding: 4px 12px; font-size: 12px; color: #e8eaf6; }
+
+  /* STATS */
+  .stats-bar { display: grid; grid-template-columns: repeat(4,1fr); gap: 0; background: #fff; border-bottom: 1px solid #e5e7eb; flex-shrink: 0; }
+  .stat { text-align: center; padding: 10px 8px; border-right: 1px solid #f0f0f0; }
+  .stat:last-child { border-right: none; }
+  .stat-num   { font-size: 22px; font-weight: 800; color: #1a237e; }
+  .stat-num.red    { color: #d32f2f; }
+  .stat-num.orange { color: #f57c00; }
+  .stat-num.green  { color: #388e3c; }
+  .stat-label { font-size: 10px; color: #57606a; margin-top: 1px; }
+
+  /* ── SIDEBAR NAV ── */
+  .app-body { display: flex; flex: 1; overflow: hidden; }
+  .sidebar { width: 210px; flex-shrink: 0; background: #1a237e; display: flex; flex-direction: column; overflow: hidden; }
+  .sidebar-logo { padding: 16px 16px 10px; border-bottom: 1px solid #ffffff18; }
+  .sidebar-logo .sl-title { font-size: 13px; font-weight: 800; color: #fff; }
+  .sidebar-logo .sl-sub   { font-size: 10px; color: #7986cb; margin-top: 2px; }
+  .nav-list { flex: 1; padding: 10px 8px; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 9px; cursor: pointer; margin-bottom: 3px; transition: background .15s; color: #c5cae9; font-size: 13px; font-weight: 600; border: none; background: none; width: 100%; text-align: left; }
+  .nav-item:hover   { background: #ffffff18; color: #fff; }
+  .nav-item.active  { background: #3949ab; color: #fff; }
+  .nav-item .nav-icon { font-size: 16px; width: 22px; text-align: center; flex-shrink: 0; }
+  .nav-item .nav-lbl  { flex: 1; line-height: 1.3; }
+  .nav-logout { padding: 10px 8px; border-top: 1px solid #ffffff18; }
+  .nav-logout button { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 9px; cursor: pointer; width: 100%; border: none; background: none; color: #ef9a9a; font-size: 13px; font-weight: 600; transition: background .15s; }
+  .nav-logout button:hover { background: #b71c1c33; color: #ff8a80; }
+
+  /* BODY */
+  .body-row { display: flex; flex: 1; overflow: hidden; }
+  .panel-left  { width: 300px; flex-shrink: 0; background: #fff; border-right: 1px solid #e5e7eb; display: flex; flex-direction: column; overflow: hidden; }
+  .panel-right { flex: 1; overflow-y: auto; padding: 20px; background: #f0f2f5; }
+
+  /* ── NAV VIEWS ── */
+  .nav-view { display: none; flex: 1; overflow: hidden; }
+  .nav-view.active { display: flex; }
+
+  /* ── STATISTIK TOPIK VIEW ── */
+  .stats-topic-view { flex: 1; overflow-y: auto; padding: 20px; background: #f0f2f5; }
+  .topic-stat-card { background: #fff; border-radius: 12px; padding: 18px; margin-bottom: 14px; border: 1px solid #e5e7eb; }
+  .topic-stat-card h3 { font-size: 13px; font-weight: 700; color: #1a237e; margin-bottom: 14px; padding-bottom: 9px; border-bottom: 1px solid #f0f0f0; }
+  .trow { display: grid; grid-template-columns: 1fr 80px 80px 80px 80px; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 1px solid #f7f8fa; font-size: 12px; }
+  .trow.thead { font-weight: 700; color: #888; font-size: 11px; }
+  .trow .tname { color: #1f2328; font-weight: 600; }
+  .trow .tcell { text-align: center; font-weight: 700; }
+
+  /* ── LAPORAN VIEW ── */
+  .laporan-view { flex: 1; overflow-y: auto; padding: 20px; background: #f0f2f5; }
+  .laporan-card { background: #fff; border-radius: 12px; padding: 20px; margin-bottom: 14px; border: 1px solid #e5e7eb; }
+  .laporan-card h3 { font-size: 13px; font-weight: 700; color: #1a237e; margin-bottom: 14px; padding-bottom: 9px; border-bottom: 1px solid #f0f0f0; }
+  .report-row { display: grid; grid-template-columns: 28px 1fr 70px 70px 70px 90px; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid #f7f8fa; font-size: 12px; }
+  .report-row.thead { font-weight: 700; color: #888; font-size: 11px; border-bottom: 1.5px solid #e5e7eb; }
+
+  /* FORM */
+  .form-section { padding: 14px 14px 10px; border-bottom: 1px solid #f0f0f0; }
+  .form-section h2 { font-size: 12px; font-weight: 700; color: #1a237e; margin-bottom: 10px; text-transform: uppercase; letter-spacing: .5px; }
+  .fg { margin-bottom: 8px; }
+  .fg label { display: block; font-size: 11px; font-weight: 600; color: #666; margin-bottom: 3px; }
+  .fg input, .fg select { width: 100%; padding: 7px 9px; border: 1.5px solid #e0e0e0; border-radius: 7px; font-size: 13px; outline: none; transition: border-color .15s; background: #fafafa; }
+  .fg input:focus { border-color: #3949ab; background: #fff; }
+  .btn-add { width: 100%; padding: 9px; background: #1a237e; color: #fff; border: none; border-radius: 7px; font-size: 13px; font-weight: 700; cursor: pointer; transition: background .15s; }
+  .btn-add:hover { background: #283593; }
+
+  /* LIST */
+  .list-meta { padding: 10px 14px 6px; display: flex; justify-content: space-between; align-items: center; }
+  .list-meta span { font-size: 11px; color: #888; font-weight: 700; text-transform: uppercase; }
+  .list-count { color: #3949ab !important; }
+  .search-wrap { padding: 0 10px 8px; }
+  .search-wrap input { width: 100%; padding: 7px 10px; border: 1.5px solid #e0e0e0; border-radius: 7px; font-size: 13px; outline: none; }
+  .search-wrap input:focus { border-color: #3949ab; }
+  .student-list { flex: 1; overflow-y: auto; padding: 0 10px 10px; }
+  .scard { display: flex; align-items: center; gap: 9px; padding: 9px 10px; border-radius: 9px; cursor: pointer; border: 1.5px solid transparent; margin-bottom: 5px; transition: all .15s; background: #f7f8fa; }
+  .scard:hover  { background: #e8eaf6; }
+  .scard.active { background: #e8eaf6; border-color: #3949ab; }
+  .av { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px; color: #fff; flex-shrink: 0; }
+  .ci { flex: 1; min-width: 0; }
+  .cn { font-size: 13px; font-weight: 700; color: #1a237e; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cs { font-size: 11px; color: #888; margin-top: 1px; }
+  .cbadge { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 20px; flex-shrink: 0; }
+  .bdel { background: none; border: none; cursor: pointer; font-size: 13px; opacity: .4; flex-shrink: 0; transition: opacity .15s; }
+  .bdel:hover { opacity: 1; }
+  .empty-msg { text-align: center; padding: 30px 16px; color: #bbb; }
+  .empty-msg .eicon { font-size: 36px; margin-bottom: 8px; }
+  .empty-msg p { font-size: 12px; line-height: 1.6; }
+
+  /* PLACEHOLDER */
+  .placeholder { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 80vh; color: #bbb; text-align: center; }
+  .placeholder .picon { font-size: 56px; margin-bottom: 14px; }
+  .placeholder p { font-size: 14px; line-height: 1.7; }
+
+  /* DETAIL */
+  .dh { border-radius: 12px; padding: 18px 20px; margin-bottom: 16px; display: flex; align-items: center; gap: 14px; color: #fff; }
+  .dav { width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 800; color: #fff; border: 2px solid #ffffff44; flex-shrink: 0; }
+  .dname { font-size: 18px; font-weight: 800; }
+  .dsub  { font-size: 12px; color: #c5cae9; margin-top: 2px; }
+  .dstats { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 16px; }
+  .ds { background: #fff; border-radius: 10px; padding: 12px; border: 1px solid #e5e7eb; text-align: center; }
+  .dsn { font-size: 22px; font-weight: 800; color: #1a237e; }
+  .dsl { font-size: 10px; color: #888; margin-top: 2px; }
+  .sc { background: #fff; border-radius: 12px; padding: 18px; margin-bottom: 14px; border: 1px solid #e5e7eb; }
+  .sc h3 { font-size: 13px; font-weight: 700; color: #1a237e; margin-bottom: 14px; padding-bottom: 9px; border-bottom: 1px solid #f0f0f0; }
+
+  /* MARKS */
+  .mgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  .mi label { display: block; font-size: 11px; font-weight: 600; color: #555; margin-bottom: 4px; }
+  .mrow { display: flex; align-items: center; gap: 6px; }
+  .minput { width: 66px; padding: 6px 7px; border: 1.5px solid #ddd; border-radius: 6px; font-size: 15px; font-weight: 700; text-align: center; outline: none; transition: border-color .15s; }
+  .minput:focus { border-color: #3949ab; }
+  .mbar-wrap { flex: 1; height: 7px; background: #eee; border-radius: 4px; overflow: hidden; }
+  .mbar { height: 100%; border-radius: 4px; transition: width .35s; }
+  .mlv { font-size: 10px; font-weight: 700; margin-top: 2px; }
+  .btn-save { width: 100%; padding: 10px; background: #1a237e; color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; transition: background .15s; }
+  .btn-save:hover { background: #283593; }
+  .saving-indicator { font-size: 11px; color: #888; text-align: center; margin-top: 6px; min-height: 16px; }
+
+  /* ANALYSIS */
+  .arow { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .atopic { flex: 1; font-size: 12px; font-weight: 600; color: #333; }
+  .atrack { flex: 2; height: 9px; background: #eee; border-radius: 5px; overflow: hidden; }
+  .afill  { height: 100%; border-radius: 5px; transition: width .5s; }
+  .apct   { width: 38px; text-align: right; font-size: 12px; font-weight: 700; }
+  .abadge { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 12px; width: 66px; text-align: center; }
+
+  /* CQI */
+  .cqi-item { border-left: 3px solid #3949ab; padding: 12px 14px; background: #f7f8fa; border-radius: 0 8px 8px 0; margin-bottom: 10px; }
+  .cqi-item.crit { border-color: #d32f2f; background: #fff5f5; }
+  .cqi-item.weak { border-color: #f57c00; background: #fffaf5; }
+  .cqi-topic { font-size: 13px; font-weight: 700; color: #1a237e; margin-bottom: 5px; }
+  .cqi-topic.crit { color: #d32f2f; }
+  .cqi-acts { list-style: none; }
+  .cqi-acts li { font-size: 12px; color: #444; margin-bottom: 4px; display: flex; gap: 6px; align-items: flex-start; line-height: 1.5; }
+  .ctype { font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 4px; flex-shrink: 0; margin-top: 1px; }
+  .coutcome { font-size: 11px; color: #388e3c; background: #e8f5e9; border-radius: 6px; padding: 8px 10px; margin-top: 8px; }
+
+  /* TOAST */
+  .toast { position: fixed; bottom: 20px; right: 20px; background: #1a237e; color: #fff; padding: 11px 18px; border-radius: 9px; font-size: 13px; font-weight: 600; box-shadow: 0 4px 16px #0003; opacity: 0; transform: translateY(8px); transition: all .25s; pointer-events: none; z-index: 9999; }
+  .toast.show { opacity: 1; transform: translateY(0); }
+
+  /* LOADER */
+  .loader { display: inline-block; width: 14px; height: 14px; border: 2px solid #c5cae9; border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; vertical-align: middle; margin-right: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  @media (max-width: 700px) {
+    .app-body { flex-direction: column; }
+    .sidebar { width: 100%; flex-direction: row; height: auto; }
+    .nav-list { display: flex; padding: 6px; overflow-x: auto; }
+    .nav-item { padding: 7px 10px; white-space: nowrap; margin-bottom: 0; margin-right: 3px; font-size: 11px; }
+    .nav-logout { border-top: none; border-left: 1px solid #ffffff18; padding: 6px; }
+    .body-row { flex-direction: column; }
+    .panel-left { width: 100%; height: 50vh; }
+    .stats-bar { grid-template-columns: repeat(2,1fr); }
+    .mgrid { grid-template-columns: 1fr; }
+    .trow { grid-template-columns: 1fr 60px 60px 60px; }
+    .trow .tcell:last-child { display: none; }
+    .report-row { grid-template-columns: 22px 1fr 55px 55px 75px; }
+    .report-row .thead-wk { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══ LOGIN SCREEN ══════════════════════════════════════════ -->
+<div class="login-screen" id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">⚡</div>
+    <div class="login-title">EC1 Student Analyzer</div>
+    <div class="login-sub">Electric Circuit 1 · DET10103</div>
+
+    <!-- ── MODE: LOG MASUK ── -->
+    <div id="mode-login">
+      <label>Email</label>
+      <input id="l-email" type="email" placeholder="email@example.com" onkeydown="if(event.key==='Enter')doLogin()">
+      <label>Password</label>
+      <input id="l-pass" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+      <button class="btn-login" id="btn-login-submit" onclick="doLogin()">Log Masuk</button>
+      <div class="login-err" id="login-err"></div>
+      <div class="login-divider">Belum ada akaun? <a href="#" onclick="showRegister();return false;" style="color:#3949ab;font-weight:700;">Daftar Sekarang</a></div>
+    </div>
+
+    <!-- ── MODE: DAFTAR ── -->
+    <div id="mode-register" style="display:none">
+      <label>Nama Penuh</label>
+      <input id="r-name" type="text" placeholder="cth: Ahmad bin Ali" onkeydown="if(event.key==='Enter')doRegister()">
+      <label>Email</label>
+      <input id="r-email" type="email" placeholder="email@example.com" onkeydown="if(event.key==='Enter')doRegister()">
+      <label>Password</label>
+      <input id="r-pass" type="password" placeholder="Minimum 6 aksara" onkeydown="if(event.key==='Enter')doRegister()">
+      <label>Sahkan Password</label>
+      <input id="r-pass2" type="password" placeholder="Taip semula password" onkeydown="if(event.key==='Enter')doRegister()">
+      <button class="btn-login" id="btn-register-submit" onclick="doRegister()">Daftar Akaun</button>
+      <div class="login-err" id="register-err"></div>
+      <div class="login-divider">Sudah ada akaun? <a href="#" onclick="showLogin();return false;" style="color:#3949ab;font-weight:700;">Log Masuk</a></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SETUP SCREEN ══════════════════════════════════════════ -->
+<div class="setup-screen" id="setup-screen">
+  <div class="setup-card">
+    <h2>🔧 Setup Firebase — Satu Kali Sahaja</h2>
+    <p>Dashboard ini guna <strong>Firebase Firestore</strong> untuk simpan data secara real-time. Ikut langkah berikut untuk setup percuma:</p>
+
+    <div class="setup-step">
+      <div class="step-n">1</div>
+      <div class="step-b">
+        <b>Pergi ke <a href="https://console.firebase.google.com" target="_blank" style="color:#3949ab">console.firebase.google.com</a></b>
+        <span>Log masuk dengan Google account, klik "Add project", namakan projek (cth: <code>ec1-analyzer</code>), disable Google Analytics, klik Create.</span>
+      </div>
+    </div>
+
+    <div class="setup-step">
+      <div class="step-n">2</div>
+      <div class="step-b">
+        <b>Tambah Web App &amp; aktifkan Firestore + Auth</b>
+        <span>Dalam projek: klik ikon <code>&lt;/&gt;</code> → register app → copy firebaseConfig. Kemudian: Build → Firestore Database → Create (Production mode). Build → Authentication → Get started → Email/Password → Enable.</span>
+      </div>
+    </div>
+
+    <div class="setup-step">
+      <div class="step-n">3</div>
+      <div class="step-b">
+        <b>Set Firestore Rules (Firestore → Rules)</b>
+        <span>Paste rules ini dan klik Publish:</span>
+        <div style="background:#1e1e1e;color:#d4d4d4;padding:10px 12px;border-radius:8px;font-family:monospace;font-size:11px;margin-top:8px;line-height:1.8">
+          rules_version = '2';<br>
+          service cloud.firestore {<br>
+          &nbsp;&nbsp;match /databases/{database}/documents {<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;match /{document=**} {<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;allow read, write: if request.auth != null;<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;}<br>
+          &nbsp;&nbsp;}<br>
+          }
+        </div>
+      </div>
+    </div>
+
+    <div class="setup-step">
+      <div class="step-n">4</div>
+      <div class="step-b">
+        <b>Paste Firebase Config di sini</b>
+        <span>Copy keseluruhan objek <code>firebaseConfig</code> dari Firebase Console:</span>
+        <div class="setup-input-row" style="margin-top:8px">
+          <textarea id="cfg-input" style="flex:1;padding:8px 10px;border:1.5px solid #ddd;border-radius:7px;font-family:monospace;font-size:11px;height:100px;resize:vertical;outline:none;" placeholder='{ "apiKey": "AIza...", "authDomain": "...", "projectId": "...", "storageBucket": "...", "messagingSenderId": "...", "appId": "..." }'></textarea>
+        </div>
+        <button class="btn-setup-save" style="margin-top:8px;width:100%;padding:10px;" onclick="saveConfig()">Simpan &amp; Sambung ke Firebase</button>
+      </div>
+    </div>
+
+    <div class="setup-note">
+      💡 <b>Untuk admin sahaja.</b> Selepas setup ini, salin nilai <code>firebaseConfig</code> dan paste terus ke dalam pembolehubah <code>FIREBASE_CONFIG</code> dalam fail <code>index.html</code> (cari baris <code>const FIREBASE_CONFIG</code>). Dengan cara ini, <b>semua pengguna lain tidak perlu buat setup ini</b> — mereka terus boleh daftar dan login.
+    </div>
+    <div class="login-err" id="setup-err" style="margin-top:10px"></div>
+  </div>
+</div>
+
+<!-- ══ MAIN APP ═══════════════════════════════════════════════ -->
+<div id="app" style="display:none;flex-direction:column;height:100vh;">
+
+  <header>
+    <div>
+      <h1>⚡ EC1 Student Performance Analyzer</h1>
+      <p>DET10103 · Analisis kelemahan pelajar &amp; CQI Action Plan</p>
+    </div>
+    <div class="header-right">
+      <div style="display:flex;align-items:center;gap:5px">
+        <div class="sync-dot" id="sync-dot"></div>
+        <span class="sync-label" id="sync-label">Connecting...</span>
+      </div>
+      <span class="user-chip" id="user-chip">—</span>
+    </div>
+  </header>
+
+  <div class="stats-bar">
+    <div class="stat"><div class="stat-num"        id="st-total">0</div><div class="stat-label">Jumlah Pelajar</div></div>
+    <div class="stat"><div class="stat-num red"    id="st-crit">0</div><div class="stat-label">⚠ Kritikal &lt;40%</div></div>
+    <div class="stat"><div class="stat-num orange" id="st-weak">0</div><div class="stat-label">Lemah 40–59%</div></div>
+    <div class="stat"><div class="stat-num green"  id="st-good">0</div><div class="stat-label">Lulus ≥60%</div></div>
+  </div>
+
+  <!-- ── APP BODY with SIDEBAR ── -->
+  <div class="app-body">
+
+    <!-- ══ SIDEBAR NAV ══ -->
+    <nav class="sidebar">
+      <div class="sidebar-logo">
+        <div class="sl-title">⚡ EC1 Analyzer</div>
+        <div class="sl-sub">DET10103</div>
+      </div>
+      <div class="nav-list">
+        <button class="nav-item active" id="nav-tambah"    onclick="switchNav('tambah')">
+          <span class="nav-icon">➕</span>
+          <span class="nav-lbl">Tambah Pelajar</span>
+        </button>
+        <button class="nav-item" id="nav-markah"    onclick="switchNav('markah')">
+          <span class="nav-icon">📝</span>
+          <span class="nav-lbl">Papar Markah Pelajar</span>
+        </button>
+        <button class="nav-item" id="nav-statistik" onclick="switchNav('statistik')">
+          <span class="nav-icon">📊</span>
+          <span class="nav-lbl">Statistik Pencapaian Topik</span>
+        </button>
+        <button class="nav-item" id="nav-laporan"   onclick="switchNav('laporan')">
+          <span class="nav-icon">📋</span>
+          <span class="nav-lbl">Laporan</span>
+        </button>
+      </div>
+      <div class="nav-logout">
+        <button onclick="doLogout()">
+          <span style="font-size:16px">🚪</span>
+          <span>Log Keluar</span>
+        </button>
+      </div>
+    </nav>
+
+    <!-- ══ VIEW: TAMBAH PELAJAR ══ -->
+    <div class="nav-view active" id="view-tambah">
+      <div class="panel-left">
+        <div class="form-section">
+          <h2>➕ Tambah Pelajar</h2>
+          <div class="fg"><label>Nama Penuh</label><input id="inp-name"  type="text"   placeholder="cth: Ahmad bin Ali"    onkeydown="if(event.key==='Enter')addStudent()"></div>
+          <div class="fg"><label>No. Matrik</label><input id="inp-id"    type="text"   placeholder="cth: 2021EC12345"       onkeydown="if(event.key==='Enter')addStudent()"></div>
+          <div class="fg"><label>Kelas</label>      <input id="inp-class" type="text"   placeholder="cth: EC1-SEC01"         onkeydown="if(event.key==='Enter')addStudent()"></div>
+          <button class="btn-add" id="btn-add" onclick="addStudent()">+ Tambah Pelajar</button>
+        </div>
+        <div class="search-wrap" style="padding-top:10px">
+          <input id="search-tambah" type="text" placeholder="🔍  Cari nama atau ID..." oninput="renderList()">
+        </div>
+        <div class="list-meta">
+          <span>Senarai Pelajar</span>
+          <span class="list-count" id="list-count">0 pelajar</span>
+        </div>
+        <div class="student-list" id="student-list">
+          <div class="empty-msg"><div class="eicon">⏳</div><p>Memuatkan data...</p></div>
+        </div>
+      </div>
+      <div class="panel-right" id="panel-right">
+        <div class="placeholder">
+          <div class="picon">📊</div>
+          <p>Pilih pelajar dari senarai<br>untuk input markah &amp; lihat analisis.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ VIEW: PAPAR MARKAH PELAJAR ══ -->
+    <div class="nav-view" id="view-markah">
+      <div class="panel-left">
+        <div class="search-wrap" style="padding-top:10px">
+          <input id="search-markah" type="text" placeholder="🔍  Cari nama atau ID..." oninput="renderListMarkah()">
+        </div>
+        <div class="list-meta">
+          <span>Pilih Pelajar</span>
+          <span class="list-count" id="list-count-markah">0 pelajar</span>
+        </div>
+        <div class="student-list" id="student-list-markah">
+          <div class="empty-msg"><div class="eicon">⏳</div><p>Memuatkan data...</p></div>
+        </div>
+      </div>
+      <div class="panel-right" id="panel-right-markah">
+        <div class="placeholder">
+          <div class="picon">📝</div>
+          <p>Pilih pelajar dari senarai<br>untuk lihat dan edit markah.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ VIEW: STATISTIK PENCAPAIAN TOPIK ══ -->
+    <div class="nav-view" id="view-statistik">
+      <div class="stats-topic-view" id="stats-topic-content">
+        <div class="placeholder">
+          <div class="picon">📊</div>
+          <p>Memuatkan statistik...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ VIEW: LAPORAN ══ -->
+    <div class="nav-view" id="view-laporan">
+      <div class="laporan-view" id="laporan-content">
+        <div class="placeholder">
+          <div class="picon">📋</div>
+          <p>Memuatkan laporan...</p>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /.app-body -->
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- ══ FIREBASE SDK ══════════════════════════════════════════ -->
+<script type="module">
+import { initializeApp }                           from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword,
+         createUserWithEmailAndPassword,
+         onAuthStateChanged, signOut }             from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, collection, doc, addDoc,
+         setDoc, deleteDoc, onSnapshot,
+         serverTimestamp, query, orderBy }         from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// ─── CONFIG ────────────────────────────────────────────────
+// CLO1 (C3 - Bloom's Taxonomy: Apply) — DET10103 Electric Circuit 1 — 5 Topics official mapping
+const TOPICS = [
+  {
+    id:'t1',
+    name:"T1: Introduction to Electric Circuit",
+    subtopics:[
+      "1.1 Symbols for electrical components",
+      "1.2 Cell and battery (series/parallel/series-parallel)",
+      "1.3 Electrical current & charge (Q = It)",
+      "1.4 Effects of electric current",
+      "1.5 Resistance & resistivity (R = ρL/A)",
+      "1.6 Ohm's Law (V, I, R in circuit)",
+      "1.7–1.8 Series, parallel & series-parallel circuits",
+      "1.9–1.10 Delta-Star transformation",
+      "1.11 Electrical power and energy",
+    ],
+    weakAreas:[
+      "Gagal kira rintangan setara dalam litar siri/selari",
+      "Salah guna formula R = ρL/A",
+      "Lemah dalam transformasi Delta-Star",
+      "Tidak dapat apply Ohm's Law dalam konteks litar baru",
+    ],
+    clo:'CLO1', bloom:'C3',
+    ref:"Modul DET10103 T1 · Hughes 'Electrical Technology' Ch.1–3"
+  },
+  {
+    id:'t2',
+    name:"T2: DC Equivalent Circuit and Network Theorems",
+    subtopics:[
+      "2.1 Kirchhoff's Current Law (KCL) & Voltage Law (KVL)",
+      "2.2 Apply KCL/KVL — solve unknown currents & voltages",
+      "2.3–2.4 Nodal and Mesh analysis",
+      "2.5–2.6 Thevenin's Theorem (V_TH, R_TH)",
+      "2.7–2.8 Norton's Theorem (I_N, R_N)",
+      "2.9 Conversion Thevenin ↔ Norton",
+    ],
+    weakAreas:[
+      "Silap tanda dalam persamaan KVL/KCL",
+      "Gagal tentukan V_TH atau R_TH dengan betul",
+      "Tidak faham perbezaan Thevenin vs Norton",
+      "Lemah dalam nodal/mesh analysis litar kompleks",
+    ],
+    clo:'CLO1', bloom:'C3',
+    ref:"Modul DET10103 T2 · Hughes 'Electrical Technology' Ch.4–6"
+  },
+  {
+    id:'t3',
+    name:"T3: Capacitors and Capacitance",
+    subtopics:[
+      "3.1 Jenis kapasitor (fixed & variable), pembinaan",
+      "3.2–3.3 Kapasitans setara siri & selari",
+      "3.4 Litar dengan beban kapasitif (i = dQ/dt)",
+      "3.5 Proses cas & nyahcas kapasitor",
+      "3.6 Kira pemalar masa τ, voltan/arus sesaat, tenaga tersimpan",
+    ],
+    weakAreas:[
+      "Keliru formula kapasitans siri vs selari",
+      "Tidak faham keluk cas/nyahcas (V vs t, I vs t)",
+      "Gagal kira pemalar masa τ = RC",
+      "Silap kira tenaga tersimpan E = ½CV²",
+    ],
+    clo:'CLO1', bloom:'C3',
+    ref:"Modul DET10103 T3 · Hughes 'Electrical Technology' Ch.7"
+  },
+  {
+    id:'t4',
+    name:"T4: Inductors and Inductance",
+    subtopics:[
+      "4.1 Pembinaan pengaruh (inductor), faktor mempengaruhi L",
+      "4.2–4.3 Induktans setara siri & selari",
+      "4.4 Litar dengan beban induktif, Faraday's Law, e = -N·dΦ/dt",
+      "4.5–4.6 Naik & turun arus dalam litar DC induktif",
+      "4.6 Kira τ = L/R, arus sesaat, tenaga tersimpan E = ½LI²",
+    ],
+    weakAreas:[
+      "Keliru formula L siri vs selari",
+      "Tidak faham Faraday's Law dalam konteks induktor",
+      "Gagal kira pemalar masa τ = L/R",
+      "Silap kira tenaga tersimpan E = ½LI²",
+    ],
+    clo:'CLO1', bloom:'C3',
+    ref:"Modul DET10103 T4 · Hughes 'Electrical Technology' Ch.8"
+  },
+  {
+    id:'t5',
+    name:"T5: Magnetic Circuit, Electromagnetism & Electromagnetic Induction",
+    subtopics:[
+      "5.1 Prinsip kemagnetan, fluks (Φ), daya gerak magnet (MMF), keengganan (S)",
+      "5.2 Apply litar magnet mudah",
+      "5.3 Perbandingan kuantiti elektrik & magnet",
+      "5.4 Elektromagnet — medan magnet oleh arus (Compass, Right-Hand Rule)",
+      "5.5 Faraday's Law, Lenz's Law, Fleming's Right-Hand Rule",
+    ],
+    weakAreas:[
+      "Tidak faham hubungan MMF, fluks, keengganan",
+      "Keliru arah medan magnet (Right-Hand Rule)",
+      "Gagal apply Faraday's Law & Lenz's Law",
+      "Lemah dalam soalan berkaitan transformer asas",
+    ],
+    clo:'CLO1', bloom:'C3',
+    ref:"Modul DET10103 T5 · Chapman 'Electric Machinery Fundamentals' Ch.1"
+  },
+];
+
+// Markah dimasukkan sebagai markah SEBENAR (bukan %)
+// Test: max 15 | EOC: max 10 | Final Exam: max 40
+const ASSESSMENTS = [
+  { id:'test',  name:"Test",              type:'CA', max:15, clo:'CLO1', bloom:'C3' },
+  { id:'eoc',   name:"End of Chapter",    type:'CA', max:10, clo:'CLO1', bloom:'C3' },
+  { id:'final', name:"Final Examination", type:'FA', max:40, clo:'CLO1', bloom:'C3' },
+];
+
+// CA lulus: Test+EOC ≥ 50% daripada 25 = ≥12.5
+// FA lulus: Final Exam ≥ 20/40 (50%)
+const CA_ASSESSMENTS = ['test','eoc'];
+const FA_ASSESSMENTS = ['final'];
+const CA_MAX  = 25;    // 15 + 10
+const FA_MAX  = 40;
+const CA_PASS = 12.5;  // 50% of 25
+const FA_PASS = 20;    // 50% of 40
+const COLORS = ['#1a237e','#283593','#1565c0','#006064','#4527a0','#880e4f','#1b5e20','#bf360c'];
+
+// ─── STATE ─────────────────────────────────────────────────
+let app, auth, db;
+let students   = [];
+let activeId   = null;
+let unsubSnap  = null;
+let saveTimer  = null;
+
+// ─── FIREBASE CONFIG (Hard-coded — admin setup sekali sahaja) ──
+// Ganti nilai di bawah dengan firebaseConfig dari Firebase Console anda.
+// Selepas diisi, SEMUA pengguna boleh login/daftar tanpa setup tambahan.
+const FIREBASE_CONFIG = {
+  apiKey:            "",
+  authDomain:        "",
+  projectId:         "",
+  storageBucket:     "",
+  messagingSenderId: "",
+  appId:             ""
+};
+
+// ─── INIT ──────────────────────────────────────────────────
+function isConfigValid(c) {
+  return c && c.apiKey && c.apiKey.length > 0 && c.projectId && c.projectId.length > 0;
+}
+
+// Cuba config hard-coded dahulu, kemudian fallback ke localStorage (backward-compat)
+function loadConfig() {
+  if (isConfigValid(FIREBASE_CONFIG)) return FIREBASE_CONFIG;
+  try { return JSON.parse(localStorage.getItem('eca_fb_config')||'null'); } catch { return null; }
+}
+
+const cfg = loadConfig();
+if (!cfg) {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('setup-screen').style.display  = 'flex';
+} else {
+  bootFirebase(cfg);
+}
+
+window.saveConfig = function() {
+  const raw = document.getElementById('cfg-input').value.trim();
+  try {
+    const parsed = JSON.parse(raw);
+    if (!parsed.apiKey || !parsed.projectId) throw new Error('Config tidak lengkap');
+    localStorage.setItem('eca_fb_config', JSON.stringify(parsed));
+    document.getElementById('setup-screen').style.display = 'none';
+    document.getElementById('login-screen').style.display = 'flex';
+    bootFirebase(parsed);
+    toast('✅ Firebase disambung!');
+  } catch(e) {
+    document.getElementById('setup-err').textContent = '⚠️ Config tidak valid: ' + e.message;
+  }
+};
+
+function bootFirebase(cfg) {
+  app  = initializeApp(cfg);
+  auth = getAuth(app);
+  db   = getFirestore(app);
+  onAuthStateChanged(auth, user => {
+    if (user) {
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('setup-screen').style.display = 'none';
+      document.getElementById('app').style.display          = 'flex';
+      document.getElementById('user-chip').textContent      = user.email;
+      startRealtime();
+    } else {
+      if (unsubSnap) { unsubSnap(); unsubSnap = null; }
+      document.getElementById('app').style.display          = 'none';
+      document.getElementById('login-screen').style.display = 'flex';
+      setSyncStatus(false);
+    }
+  });
+}
+
+// ─── AUTH ──────────────────────────────────────────────────
+window.showRegister = function() {
+  document.getElementById('mode-login').style.display    = 'none';
+  document.getElementById('mode-register').style.display = 'block';
+  document.getElementById('login-err').textContent    = '';
+  document.getElementById('register-err').textContent = '';
+  document.getElementById('r-name').focus();
+};
+window.showLogin = function() {
+  document.getElementById('mode-register').style.display = 'none';
+  document.getElementById('mode-login').style.display    = 'block';
+  document.getElementById('login-err').textContent    = '';
+  document.getElementById('register-err').textContent = '';
+  document.getElementById('l-email').focus();
+};
+
+window.doLogin = async function() {
+  const email = document.getElementById('l-email').value.trim();
+  const pass  = document.getElementById('l-pass').value;
+  const btn   = document.getElementById('btn-login-submit');
+  const err   = document.getElementById('login-err');
+  err.textContent = '';
+  if (!email || !pass) { err.textContent = 'Sila isi email dan password.'; return; }
+  btn.innerHTML = '<span class="loader"></span>Log masuk...';
+  btn.disabled  = true;
+  try {
+    await signInWithEmailAndPassword(auth, email, pass);
+  } catch(e) {
+    err.textContent = friendlyAuthError(e.code);
+  } finally {
+    btn.innerHTML = 'Log Masuk';
+    btn.disabled  = false;
+  }
+};
+
+window.doRegister = async function() {
+  const name  = document.getElementById('r-name').value.trim();
+  const email = document.getElementById('r-email').value.trim();
+  const pass  = document.getElementById('r-pass').value;
+  const pass2 = document.getElementById('r-pass2').value;
+  const btn   = document.getElementById('btn-register-submit');
+  const err   = document.getElementById('register-err');
+  err.textContent = '';
+  if (!name)              { err.textContent = 'Sila masukkan nama penuh.'; return; }
+  if (!email)             { err.textContent = 'Sila masukkan email.'; return; }
+  if (!pass)              { err.textContent = 'Sila masukkan password.'; return; }
+  if (pass.length < 6)    { err.textContent = 'Password minimum 6 aksara.'; return; }
+  if (pass !== pass2)     { err.textContent = 'Password tidak sepadan. Cuba semula.'; return; }
+  btn.innerHTML = '<span class="loader"></span>Mendaftar...';
+  btn.disabled  = true;
+  try {
+    const cred = await createUserWithEmailAndPassword(auth, email, pass);
+    // Simpan nama dalam Firestore untuk paparan kemudian
+    await setDoc(doc(db, 'users', cred.user.uid), { name, email, createdAt: serverTimestamp() });
+    toast('✅ Akaun berjaya didaftar! Selamat datang, ' + name + '!');
+    showLogin();
+  } catch(e) {
+    err.textContent = friendlyAuthError(e.code);
+  } finally {
+    btn.innerHTML = 'Daftar Akaun';
+    btn.disabled  = false;
+  }
+};
+
+window.doLogout = async function() {
+  if (unsubSnap) { unsubSnap(); unsubSnap = null; }
+  await signOut(auth);
+  students = []; activeId = null;
+  renderList(); updateStats();
+};
+
+function friendlyAuthError(code) {
+  const map = {
+    'auth/invalid-email':         'Format email tidak sah.',
+    'auth/user-not-found':        'Email tidak dijumpai. Cuba daftar dahulu.',
+    'auth/wrong-password':        'Password salah.',
+    'auth/invalid-credential':    'Email atau password salah.',
+    'auth/email-already-in-use':  'Email sudah didaftar. Cuba log masuk.',
+    'auth/too-many-requests':     'Terlalu banyak percubaan. Cuba lagi sebentar.',
+  };
+  return map[code] || 'Ralat: ' + code;
+}
+
+// ─── REAL-TIME LISTENER ────────────────────────────────────
+function startRealtime() {
+  setSyncStatus(false);
+  const q = query(collection(db, 'students'), orderBy('createdAt','asc'));
+  unsubSnap = onSnapshot(q,
+    snap => {
+      students = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      updateStats();
+      renderList();
+      renderListMarkah();
+      // Refresh active view if statistik/laporan is open
+      const activeView = ['tambah','markah','statistik','laporan'].find(v =>
+        document.getElementById('view-'+v)?.classList.contains('active')
+      );
+      if (activeView==='statistik') buildStatistikTopik();
+      if (activeView==='laporan')   buildLaporan();
+      if (activeId) {
+        const still = students.find(s=>s.id===activeId);
+        if (still) openStudent(activeId);
+      }
+      setSyncStatus(true);
+    },
+    err => {
+      setSyncStatus(false);
+      toast('⚠️ Gagal sambung ke database: ' + err.message);
+    }
+  );
+}
+
+function setSyncStatus(online) {
+  const dot   = document.getElementById('sync-dot');
+  const label = document.getElementById('sync-label');
+  if (!dot) return;
+  dot.className   = 'sync-dot' + (online?'':' off');
+  label.textContent = online ? 'Live' : 'Offline';
+}
+
+// ─── HELPERS ───────────────────────────────────────────────
+function level(m) {
+  if (m===null||m===undefined||m==='') return { label:'—', color:'#9e9e9e', bg:'#f5f5f5' };
+  m = parseFloat(m);
+  if (m < 40)  return { label:'Kritikal',  color:'#d32f2f', bg:'#ffebee' };
+  if (m < 60)  return { label:'Lemah',     color:'#f57c00', bg:'#fff3e0' };
+  if (m < 75)  return { label:'Sederhana', color:'#fbc02d', bg:'#fffde7' };
+  return             { label:'Baik',       color:'#388e3c', bg:'#e8f5e9' };
+}
+// Jumlah markah sebenar semua assessment (max 65)
+function avgMarks(s) {
+  let total=0, maxTotal=0;
+  ASSESSMENTS.forEach(a=>{
+    const v=s.marks?.[a.id];
+    if (v!==''&&v!==undefined&&v!==null){ total+=parseFloat(v); maxTotal+=a.max; }
+  });
+  return maxTotal ? Math.round(total/maxTotal*100) : null;
+}
+// CA score = jumlah markah Test + EOC (max 25), kembalikan markah sebenar
+function caScore(s) {
+  let total=0, filled=0;
+  CA_ASSESSMENTS.forEach(id=>{
+    const v=s.marks?.[id];
+    if (v!==''&&v!==undefined&&v!==null){ total+=parseFloat(v); filled++; }
+  });
+  return filled ? parseFloat(total.toFixed(1)) : null;
+}
+// FA score = markah Final Exam sebenar (max 40)
+function faScore(s) {
+  const v=s.marks?.['final'];
+  return (v!==''&&v!==undefined&&v!==null) ? parseFloat(v) : null;
+}
+// Pass status: CA ≥12.5/25 DAN FA ≥20/40
+function passStatus(s) {
+  const ca=caScore(s), fa=faScore(s);
+  if (ca===null&&fa===null) return { label:'Belum Dinilai', color:'#9e9e9e', bg:'#f5f5f5' };
+  if (ca===null||fa===null) return { label:'Tidak Lengkap', color:'#7b1fa2', bg:'#f3e5f5' };
+  if (ca>=CA_PASS && fa>=FA_PASS) return { label:'LULUS', color:'#388e3c', bg:'#e8f5e9' };
+  if (ca<CA_PASS && fa<FA_PASS)   return { label:'GAGAL (CA+FA)', color:'#d32f2f', bg:'#ffebee' };
+  if (ca<CA_PASS)                 return { label:'GAGAL CA', color:'#f57c00', bg:'#fff3e0' };
+  return                                 { label:'GAGAL FA', color:'#e53935', bg:'#ffebee' };
+}
+function topicAvg(s) {
+  const vals=TOPICS.map(t=>s.topicMarks?.[t.id]).filter(v=>v!==''&&v!==undefined&&v!==null);
+  return vals.length ? Math.round(vals.reduce((a,b)=>a+parseFloat(b),0)/vals.length) : null;
+}
+function avatarColor(name) {
+  let h=0; for(let c of name) h=(h*31+c.charCodeAt(0))%COLORS.length; return COLORS[h];
+}
+
+// ─── STATS ─────────────────────────────────────────────────
+function updateStats() {
+  let crit=0,weak=0,good=0;
+  students.forEach(s=>{
+    const m=avgMarks(s); if(m===null)return;
+    if(m<40)crit++; else if(m<60)weak++; else good++;
+  });
+  document.getElementById('st-total').textContent = students.length;
+  document.getElementById('st-crit').textContent  = crit;
+  document.getElementById('st-weak').textContent  = weak;
+  document.getElementById('st-good').textContent  = good;
+}
+
+// ─── SIDEBAR NAV ───────────────────────────────────────────
+window.switchNav = function(view) {
+  ['tambah','markah','statistik','laporan'].forEach(v => {
+    document.getElementById('nav-'+v).classList.toggle('active', v===view);
+    document.getElementById('view-'+v).classList.toggle('active', v===view);
+  });
+  if (view==='markah')    renderListMarkah();
+  if (view==='statistik') buildStatistikTopik();
+  if (view==='laporan')   buildLaporan();
+};
+
+// ─── LIST (Tambah view) ────────────────────────────────────
+function renderList() {
+  const q  = (document.getElementById('search-tambah')?.value||'').toLowerCase();
+  const el = document.getElementById('student-list');
+  if (!el) return;
+  const filtered = students.filter(s=>
+    s.name.toLowerCase().includes(q)||s.studentId.toLowerCase().includes(q)
+  );
+  document.getElementById('list-count').textContent = filtered.length + ' pelajar';
+  if (!filtered.length) {
+    el.innerHTML = `<div class="empty-msg"><div class="eicon">👨‍🎓</div><p>${students.length?'Tiada hasil carian.':'Tambah pelajar pertama anda!'}</p></div>`;
+    return;
+  }
+  el.innerHTML = filtered.map(s=>{
+    const m=avgMarks(s), lv=level(m), col=avatarColor(s.name);
+    return `<div class="scard${s.id===activeId?' active':''}" onclick="openStudent('${s.id}')">
+      <div class="av" style="background:${col}">${s.name.charAt(0).toUpperCase()}</div>
+      <div class="ci">
+        <div class="cn">${s.name}</div>
+        <div class="cs">${s.studentId}${s.className?' · '+s.className:''}</div>
+      </div>
+      <span class="cbadge" style="background:${lv.bg};color:${lv.color}">${m!==null?m+'%':'—'}</span>
+      <button class="bdel" onclick="event.stopPropagation();deleteStudent('${s.id}')" title="Padam">✕</button>
+    </div>`;
+  }).join('');
+}
+
+// ─── LIST (Markah view) ───────────────────────────────────
+let activeMarkahId = null;
+function renderListMarkah() {
+  const q  = (document.getElementById('search-markah')?.value||'').toLowerCase();
+  const el = document.getElementById('student-list-markah');
+  if (!el) return;
+  const filtered = students.filter(s=>
+    s.name.toLowerCase().includes(q)||s.studentId.toLowerCase().includes(q)
+  );
+  document.getElementById('list-count-markah').textContent = filtered.length + ' pelajar';
+  if (!filtered.length) {
+    el.innerHTML = `<div class="empty-msg"><div class="eicon">👨‍🎓</div><p>${students.length?'Tiada hasil carian.':'Tiada pelajar.'}</p></div>`;
+    return;
+  }
+  el.innerHTML = filtered.map(s=>{
+    const m=avgMarks(s), lv=level(m), col=avatarColor(s.name);
+    return `<div class="scard${s.id===activeMarkahId?' active':''}" onclick="openMarkah('${s.id}')">
+      <div class="av" style="background:${col}">${s.name.charAt(0).toUpperCase()}</div>
+      <div class="ci">
+        <div class="cn">${s.name}</div>
+        <div class="cs">${s.studentId}${s.className?' · '+s.className:''}</div>
+      </div>
+      <span class="cbadge" style="background:${lv.bg};color:${lv.color}">${m!==null?m+'%':'—'}</span>
+    </div>`;
+  }).join('');
+}
+
+window.openMarkah = function(id) {
+  activeMarkahId = id;
+  renderListMarkah();
+  const s = students.find(x=>x.id===id); if(!s) return;
+  const col=avatarColor(s.name);
+  const ca=caScore(s), fa=faScore(s), ps=passStatus(s);
+  document.getElementById('panel-right-markah').innerHTML = `
+    <div class="dh" style="background:${ps.color==='#d32f2f'||ps.color==='#e53935'?'#b71c1c':'#1a237e'}">
+      <div class="dav" style="background:${col}">${s.name.charAt(0).toUpperCase()}</div>
+      <div style="flex:1">
+        <div class="dname">${s.name}</div>
+        <div class="dsub">ID: ${s.studentId}${s.className?' &nbsp;|&nbsp; '+s.className:''}</div>
+      </div>
+      <span style="background:${ps.bg};color:${ps.color};font-size:12px;font-weight:800;padding:4px 12px;border-radius:20px">${ps.label}</span>
+    </div>
+    <div class="sc">
+      <h3>📝 Markah Assessment — CLO1 (C3: Apply)</h3>
+      <div class="mgrid" style="grid-template-columns:repeat(3,1fr)">
+        ${ASSESSMENTS.map(a=>markCell(s,'marks',a.id,
+          `${a.name} <span style="color:${a.type==='CA'?'#1565c0':'#6a1b9a'};font-size:10px">[${a.type} · /${a.max}]</span>`
+        )).join('')}
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+        <div style="background:${ca!==null&&ca<CA_PASS?'#ffebee':'#e8f5e9'};border-radius:8px;padding:10px 14px;text-align:center">
+          <div style="font-size:11px;font-weight:700;color:#555;margin-bottom:4px">CA Score (Test + EoC)</div>
+          <div style="font-size:22px;font-weight:800;color:${ca!==null&&ca<CA_PASS?'#d32f2f':'#388e3c'}">${ca!==null?ca+'/'+CA_MAX:'—'}</div>
+          <div style="font-size:10px;color:${ca!==null&&ca<CA_PASS?'#d32f2f':'#388e3c'};font-weight:700">${ca===null?'Belum diisi':ca>=CA_PASS?'✅ LULUS CA':'❌ GAGAL CA (min '+CA_PASS+'/'+CA_MAX+')'}</div>
+        </div>
+        <div style="background:${fa!==null&&fa<FA_PASS?'#ffebee':'#e8f5e9'};border-radius:8px;padding:10px 14px;text-align:center">
+          <div style="font-size:11px;font-weight:700;color:#555;margin-bottom:4px">FA Score (Final Exam)</div>
+          <div style="font-size:22px;font-weight:800;color:${fa!==null&&fa<FA_PASS?'#d32f2f':'#388e3c'}">${fa!==null?fa+'/'+FA_MAX:'—'}</div>
+          <div style="font-size:10px;color:${fa!==null&&fa<FA_PASS?'#d32f2f':'#388e3c'};font-weight:700">${fa===null?'Belum diisi':fa>=FA_PASS?'✅ LULUS FA':'❌ GAGAL FA (min '+FA_PASS+'/'+FA_MAX+')'}</div>
+        </div>
+      </div>
+      <div class="sc" style="margin-bottom:0;border:none;padding:0">
+        <h3>📚 Markah Per Topik (T1–T5)</h3>
+        <div class="mgrid">${TOPICS.map(t=>markCell(s,'topicMarks',t.id,
+          `${t.name} <span style="font-size:9px;color:#888">[${t.clo}·${t.bloom}]</span>`
+        )).join('')}</div>
+      </div>
+      <button class="btn-save" style="margin-top:12px" onclick="saveMarksMarkah('${s.id}')">💾 Simpan Markah</button>
+      <div class="saving-indicator" id="save-ind-markah"></div>
+    </div>
+  `;
+};
+
+window.saveMarksMarkah = async function(sid) {
+  const s = students.find(x=>x.id===sid); if(!s) return;
+  const marks={}, topicMarks={};
+  ASSESSMENTS.forEach(a=>{ const el=document.getElementById(`inp-marks-${a.id}`); if(el){ const v=el.value.trim(); marks[a.id]=v===''?'':parseFloat(v); }});
+  TOPICS.forEach(t=>{ const el=document.getElementById(`inp-topicMarks-${t.id}`); if(el){ const v=el.value.trim(); topicMarks[t.id]=v===''?'':parseFloat(v); }});
+  const ind = document.getElementById('save-ind-markah');
+  if(ind){ ind.innerHTML='<span class="loader" style="border-color:#ddd;border-top-color:#1a237e"></span> Menyimpan...'; }
+  try {
+    await setDoc(doc(db,'students',sid), { marks, topicMarks }, { merge:true });
+    if(ind) ind.textContent = '✅ Tersimpan';
+    toast('✅ Markah disimpan!');
+    setTimeout(()=>{ if(ind) ind.textContent=''; },4000);
+  } catch(e) {
+    if(ind) ind.textContent = '❌ Gagal simpan: '+e.message;
+    toast('❌ Gagal simpan: '+e.message);
+  }
+};
+
+// ─── STATISTIK PENCAPAIAN TOPIK ───────────────────────────
+function buildStatistikTopik() {
+  const el = document.getElementById('stats-topic-content');
+  if (!el) return;
+  if (!students.length) {
+    el.innerHTML = `<div class="placeholder"><div class="picon">📊</div><p>Tiada data pelajar lagi.</p></div>`;
+    return;
+  }
+  // Per-topic stats
+  const topicStats = TOPICS.map(t => {
+    const vals = students.map(s=>s.topicMarks?.[t.id]).filter(v=>v!==''&&v!==undefined&&v!==null).map(v=>parseFloat(v));
+    const avg  = vals.length ? Math.round(vals.reduce((a,b)=>a+b,0)/vals.length) : null;
+    const crit = vals.filter(v=>v<40).length;
+    const weak = vals.filter(v=>v>=40&&v<60).length;
+    const good = vals.filter(v=>v>=60).length;
+    return { ...t, avg, crit, weak, good, total: vals.length };
+  });
+  // Per-assessment stats
+  const assStats = ASSESSMENTS.map(a => {
+    const vals = students.map(s=>s.marks?.[a.id]).filter(v=>v!==''&&v!==undefined&&v!==null).map(v=>parseFloat(v));
+    const avgRaw = vals.length ? parseFloat((vals.reduce((x,b)=>x+b,0)/vals.length).toFixed(1)) : null;
+    // pass threshold per assessment: CA items use CA_PASS proportional, FA uses FA_PASS
+    const passThresh = a.type==='FA' ? FA_PASS : (a.max / CA_MAX * CA_PASS);
+    const pass = vals.filter(v=>v>=passThresh).length;
+    const fail = vals.filter(v=>v<passThresh).length;
+    return { ...a, avgRaw, pass, fail, total: vals.length };
+  });
+  const overallPass = students.filter(s=>{ const ps=passStatus(s); return ps.label==='LULUS'; }).length;
+  const overallFail = students.length - overallPass;
+
+  el.innerHTML = `
+    <div class="topic-stat-card">
+      <h3>📊 Ringkasan Keseluruhan CLO1</h3>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px">
+        <div class="ds"><div class="dsn">${students.length}</div><div class="dsl">Jumlah Pelajar</div></div>
+        <div class="ds"><div class="dsn" style="color:#388e3c">${overallPass}</div><div class="dsl">✅ Lulus CLO1</div></div>
+        <div class="ds"><div class="dsn" style="color:#d32f2f">${overallFail}</div><div class="dsl">❌ Gagal CLO1</div></div>
+      </div>
+    </div>
+    <div class="topic-stat-card">
+      <h3>📝 Statistik Per Assessment</h3>
+      <div class="trow thead">
+        <div>Assessment</div><div class="tcell">Avg</div><div class="tcell">Lulus</div><div class="tcell">Gagal</div><div class="tcell">Rekod</div>
+      </div>
+      ${assStats.map(a=>{
+        const avgPct = a.avgRaw!==null ? Math.round(a.avgRaw/a.max*100) : null;
+        const lv=level(avgPct);
+        return `<div class="trow">
+          <div class="tname">${a.name} <span style="font-size:10px;color:#888">[${a.type} · /${a.max}]</span></div>
+          <div class="tcell" style="color:${lv.color}">${a.avgRaw!==null?a.avgRaw+'/'+a.max:'—'}</div>
+          <div class="tcell" style="color:#388e3c">${a.pass}</div>
+          <div class="tcell" style="color:#d32f2f">${a.fail}</div>
+          <div class="tcell" style="color:#888">${a.total}/${students.length}</div>
+        </div>`;
+      }).join('')}
+    </div>
+    <div class="topic-stat-card">
+      <h3>📚 Statistik Per Topik (T1–T5) · CLO1 C3</h3>
+      <div class="trow thead">
+        <div>Topik</div><div class="tcell">Avg</div><div class="tcell">Kritikal</div><div class="tcell">Lemah</div><div class="tcell">Baik</div>
+      </div>
+      ${topicStats.map(t=>{
+        const lv=level(t.avg);
+        return `<div class="trow">
+          <div class="tname">${t.name.split(':')[0]+':'} <span style="color:#555">${t.name.split(':').slice(1).join(':').trim()}</span></div>
+          <div class="tcell">
+            <span style="background:${lv.bg};color:${lv.color};padding:2px 8px;border-radius:10px;font-size:11px">${t.avg!==null?t.avg+'%':'—'}</span>
+          </div>
+          <div class="tcell" style="color:#d32f2f">${t.crit}</div>
+          <div class="tcell" style="color:#f57c00">${t.weak}</div>
+          <div class="tcell" style="color:#388e3c">${t.good}</div>
+        </div>`;
+      }).join('')}
+    </div>
+  `;
+}
+
+// ─── LAPORAN ──────────────────────────────────────────────
+function buildLaporan() {
+  const el = document.getElementById('laporan-content');
+  if (!el) return;
+  if (!students.length) {
+    el.innerHTML = `<div class="placeholder"><div class="picon">📋</div><p>Tiada data pelajar lagi.</p></div>`;
+    return;
+  }
+  const date = new Date().toLocaleDateString('ms-MY');
+  el.innerHTML = `
+    <div class="laporan-card">
+      <h3>📋 Laporan Prestasi Pelajar — DET10103 Electric Circuit 1</h3>
+      <div style="font-size:12px;color:#555;margin-bottom:14px;line-height:1.7">
+        Tarikh: <b>${date}</b> &nbsp;|&nbsp; CLO1 · C3 (Apply — Bloom's Taxonomy)<br>
+        Assessment: Test (15%) + End of Chapter (10%) + Final Exam (40%)
+      </div>
+      <div style="margin-bottom:14px;display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn-save" style="width:auto;padding:8px 20px;font-size:12px" onclick="exportPDF()">🖨️ Jana PDF</button>
+        <button class="btn-save" style="width:auto;padding:8px 20px;font-size:12px;background:#283593" onclick="exportReport()">📤 Export .txt</button>
+      </div>
+      <div class="report-row thead">
+        <div>#</div>
+        <div>Nama / ID</div>
+        <div class="tcell">CA</div>
+        <div class="tcell">FA</div>
+        <div class="tcell">Avg Topik</div>
+        <div class="tcell">Status CLO1</div>
+      </div>
+      ${students.map((s,i)=>{
+        const ca=caScore(s), fa=faScore(s), ps=passStatus(s), tA=topicAvg(s), tLv=level(tA);
+        const caLv=level(ca!==null?Math.round(ca/CA_MAX*100):null);
+        const faLv=level(fa!==null?Math.round(fa/FA_MAX*100):null);
+        return `<div class="report-row">
+          <div style="color:#888;font-size:11px">${i+1}</div>
+          <div>
+            <div style="font-weight:700;font-size:12px;color:#1a237e">${s.name}</div>
+            <div style="font-size:10px;color:#888">${s.studentId}${s.className?' · '+s.className:''}</div>
+          </div>
+          <div class="tcell" style="color:${caLv.color}">${ca!==null?ca+'/'+CA_MAX:'—'}</div>
+          <div class="tcell" style="color:${faLv.color}">${fa!==null?fa+'/'+FA_MAX:'—'}</div>
+          <div class="tcell" style="color:${tLv.color}">${tA!==null?tA+'%':'—'}</div>
+          <div class="tcell"><span style="background:${ps.bg};color:${ps.color};padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700">${ps.label}</span></div>
+        </div>`;
+      }).join('')}
+    </div>
+  `;
+}
+
+// ─── ADD STUDENT ───────────────────────────────────────────
+window.addStudent = async function() {
+  const name = document.getElementById('inp-name').value.trim();
+  const sid  = document.getElementById('inp-id').value.trim();
+  const cls  = document.getElementById('inp-class').value.trim();
+  if (!name){ toast('⚠️ Sila masukkan nama'); return; }
+  if (!sid) { toast('⚠️ Sila masukkan No. Matrik'); return; }
+  const btn = document.getElementById('btn-add');
+  btn.textContent = 'Menyimpan...'; btn.disabled = true;
+  try {
+    const ref = await addDoc(collection(db,'students'), {
+      name, studentId: sid.toUpperCase(), className: cls,
+      marks:{}, topicMarks:{}, createdAt: serverTimestamp()
+    });
+    ['inp-name','inp-id','inp-class'].forEach(id=>document.getElementById(id).value='');
+    toast('✅ '+name+' ditambah!');
+    openStudent(ref.id);
+  } catch(e) {
+    toast('❌ Gagal: '+e.message);
+  } finally {
+    btn.textContent = '+ Tambah Pelajar'; btn.disabled = false;
+  }
+};
+
+// ─── DELETE ────────────────────────────────────────────────
+window.deleteStudent = async function(id) {
+  if (!confirm('Padam pelajar ini?')) return;
+  await deleteDoc(doc(db,'students',id));
+  if (activeId===id){ activeId=null; document.getElementById('panel-right').innerHTML=`<div class="placeholder"><div class="picon">📊</div><p>Pilih pelajar untuk lihat analisis.</p></div>`; }
+  toast('🗑️ Pelajar dipadam');
+};
+
+// ─── OPEN STUDENT ──────────────────────────────────────────
+window.openStudent = function(id) {
+  activeId = id;
+  renderList();
+  const s = students.find(x=>x.id===id); if(!s) return;
+  const col=avatarColor(s.name);
+  const ca=caScore(s), fa=faScore(s), ps=passStatus(s);
+  const tAvg=topicAvg(s), tLv=level(tAvg);
+  document.getElementById('panel-right').innerHTML = `
+    <div class="dh" style="background:${ps.color==='#d32f2f'||ps.color==='#e53935'?'#b71c1c':'#1a237e'}">
+      <div class="dav" style="background:${col}">${s.name.charAt(0).toUpperCase()}</div>
+      <div style="flex:1">
+        <div class="dname">${s.name}</div>
+        <div class="dsub">ID: ${s.studentId}${s.className?' &nbsp;|&nbsp; '+s.className:''}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:11px;color:#c5cae9;margin-bottom:4px">CLO1 · C3 (Bloom)</div>
+        <span style="background:${ps.bg};color:${ps.color};font-size:12px;font-weight:800;padding:4px 12px;border-radius:20px">${ps.label}</span>
+      </div>
+    </div>
+    <div class="dstats" style="grid-template-columns:repeat(4,1fr)">
+      <div class="ds">
+        <div class="dsn" style="color:${level(ca!==null?Math.round(ca/CA_MAX*100):null).color}">${ca!==null?ca+'/'+CA_MAX:'—'}</div>
+        <div class="dsl">CA Score</div>
+        <div style="font-size:9px;color:#aaa;margin-top:2px">Test+EoC (max ${CA_MAX})</div>
+      </div>
+      <div class="ds">
+        <div class="dsn" style="color:${level(fa!==null?Math.round(fa/FA_MAX*100):null).color}">${fa!==null?fa+'/'+FA_MAX:'—'}</div>
+        <div class="dsl">FA Score</div>
+        <div style="font-size:9px;color:#aaa;margin-top:2px">Final Exam (max ${FA_MAX})</div>
+      </div>
+      <div class="ds">
+        <div class="dsn" style="color:${tLv.color}">${tAvg!==null?tAvg+'%':'—'}</div>
+        <div class="dsl">Avg Topik</div>
+        <div style="font-size:9px;color:#aaa;margin-top:2px">T1–T5</div>
+      </div>
+      <div class="ds">
+        <div class="dsn" style="color:${ps.color};font-size:14px">${ps.label}</div>
+        <div class="dsl">Status CLO1</div>
+        <div style="font-size:9px;color:#aaa;margin-top:2px">Pass BOTH ≥50%</div>
+      </div>
+    </div>
+    <div class="sc">
+      <h3>📝 Markah Assessment — CLO1 (C3: Apply)</h3>
+      <div style="background:#e8eaf6;border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:#3949ab;line-height:1.7">
+        <b>Pemetaan Assessment → CLO1 (C3 — Bloom's Taxonomy: Apply)</b><br>
+        Pelajar <b>MESTI LULUS KEDUA-DUA</b> CA (≥${CA_PASS}/${CA_MAX}) dan FA (≥${FA_PASS}/${FA_MAX}) untuk lulus CLO1.
+      </div>
+      <div class="mgrid" style="grid-template-columns:repeat(3,1fr)">
+        ${ASSESSMENTS.map(a=>markCell(s,'marks',a.id,
+          `${a.name} <span style="color:${a.type==='CA'?'#1565c0':'#6a1b9a'};font-size:10px">[${a.type} · /${a.max}]</span>`
+        )).join('')}
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;margin-bottom:12px">
+        <div style="background:${ca!==null&&ca<CA_PASS?'#ffebee':'#e8f5e9'};border-radius:8px;padding:10px 14px;text-align:center">
+          <div style="font-size:11px;font-weight:700;color:#555;margin-bottom:4px">CA Score (Test + EoC)</div>
+          <div style="font-size:22px;font-weight:800;color:${ca!==null&&ca<CA_PASS?'#d32f2f':'#388e3c'}">${ca!==null?ca+'/'+CA_MAX:'—'}</div>
+          <div style="font-size:10px;color:${ca!==null&&ca<CA_PASS?'#d32f2f':'#388e3c'};font-weight:700">${ca===null?'Belum diisi':ca>=CA_PASS?'✅ LULUS CA':'❌ GAGAL CA (min '+CA_PASS+'/'+CA_MAX+')'}</div>
+        </div>
+        <div style="background:${fa!==null&&fa<FA_PASS?'#ffebee':'#e8f5e9'};border-radius:8px;padding:10px 14px;text-align:center">
+          <div style="font-size:11px;font-weight:700;color:#555;margin-bottom:4px">FA Score (Final Exam)</div>
+          <div style="font-size:22px;font-weight:800;color:${fa!==null&&fa<FA_PASS?'#d32f2f':'#388e3c'}">${fa!==null?fa+'/'+FA_MAX:'—'}</div>
+          <div style="font-size:10px;color:${fa!==null&&fa<FA_PASS?'#d32f2f':'#388e3c'};font-weight:700">${fa===null?'Belum diisi':fa>=FA_PASS?'✅ LULUS FA':'❌ GAGAL FA (min '+FA_PASS+'/'+FA_MAX+')'}</div>
+        </div>
+      </div>
+      <button class="btn-save" onclick="saveMarks('${s.id}')">💾 Simpan Markah</button>
+      <div class="saving-indicator" id="save-ind"></div>
+    </div>
+    <div class="sc">
+      <h3>📚 Markah Per Topik (T1–T5) · CLO1 C3</h3>
+      <div style="background:#fff8e1;border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:11px;color:#795548">
+        Masukkan markah pelajar per topik untuk kenal pasti topik mana yang lemah dalam domain <b>C3 (Apply)</b>.
+      </div>
+      <div class="mgrid">${TOPICS.map(t=>markCell(s,'topicMarks',t.id,
+        `${t.name} <span style="font-size:9px;color:#888">[${t.clo} · ${t.bloom}]</span>`
+      )).join('')}</div>
+      <button class="btn-save" onclick="saveMarks('${s.id}')">💾 Simpan Markah</button>
+    </div>
+    ${buildAnalysis(s)}
+    ${buildCQI(s)}
+  `;
+};
+
+function markCell(s, field, key, label) {
+  const v   = s[field]?.[key] ?? '';
+  // For assessment fields, compute % from max for colour/bar; topic marks stay as %
+  const asmDef = field==='marks' ? ASSESSMENTS.find(a=>a.id===key) : null;
+  const maxVal = asmDef ? asmDef.max : 100;
+  const pct  = v==='' ? null : Math.round(parseFloat(v)/maxVal*100);
+  const lv   = level(pct);
+  const w    = pct===null ? 0 : Math.min(100, pct);
+  const dispVal = v!=='' ? (asmDef ? `${v}/${maxVal}` : `${parseFloat(v).toFixed(0)}%`) : '';
+  return `<div class="mi">
+    <label>${label}</label>
+    <div class="mrow">
+      <input class="minput" type="number" min="0" max="${maxVal}" step="0.5"
+        id="inp-${field}-${key}"
+        value="${v}" placeholder="—"
+        style="border-color:${v!==''?lv.color:'#ddd'};width:72px"
+        oninput="liveBar(this,'bar-${field}-${key}','lv-${field}-${key}',${maxVal})">
+      <div class="mbar-wrap"><div class="mbar" id="bar-${field}-${key}" style="width:${w}%;background:${lv.color}"></div></div>
+    </div>
+    <div class="mlv" id="lv-${field}-${key}" style="color:${lv.color}">${v!==''?lv.label+' ('+dispVal+')':''}</div>
+  </div>`;
+}
+
+// ─── LIVE BAR ──────────────────────────────────────────────
+window.liveBar = function(input, barId, lvId, maxVal) {
+  maxVal = maxVal || 100;
+  const v=input.value.trim();
+  const pct = v==='' ? null : Math.round(parseFloat(v)/maxVal*100);
+  const lv=level(pct);
+  const w=pct===null?0:Math.min(100,Math.max(0,pct));
+  const dispVal = v ? (maxVal!==100 ? `${v}/${maxVal}` : `${parseFloat(v).toFixed(0)}%`) : '';
+  const bar=document.getElementById(barId), lvEl=document.getElementById(lvId);
+  if(bar){bar.style.width=w+'%';bar.style.background=lv.color;}
+  if(lvEl){lvEl.textContent=v?lv.label+' ('+dispVal+')':'';lvEl.style.color=lv.color;}
+  input.style.borderColor=v?lv.color:'#ddd';
+};
+
+// ─── SAVE MARKS to FIRESTORE ───────────────────────────────
+window.saveMarks = async function(sid) {
+  const s = students.find(x=>x.id===sid); if(!s) return;
+  const marks={}, topicMarks={};
+  ASSESSMENTS.forEach(a=>{ const el=document.getElementById(`inp-marks-${a.id}`); if(el){ const v=el.value.trim(); marks[a.id]=v===''?'':parseFloat(v); }});
+  TOPICS.forEach(t=>{ const el=document.getElementById(`inp-topicMarks-${t.id}`); if(el){ const v=el.value.trim(); topicMarks[t.id]=v===''?'':parseFloat(v); }});
+  const ind = document.getElementById('save-ind');
+  if(ind){ ind.innerHTML='<span class="loader" style="border-color:#ddd;border-top-color:#1a237e"></span> Menyimpan...'; }
+  try {
+    await setDoc(doc(db,'students',sid), { marks, topicMarks }, { merge:true });
+    if(ind) ind.textContent = '✅ Tersimpan — semua pengguna akan nampak perubahan ini';
+    toast('✅ Markah disimpan ke Firebase!');
+    setTimeout(()=>{ if(ind) ind.textContent=''; },4000);
+  } catch(e) {
+    if(ind) ind.textContent = '❌ Gagal simpan: '+e.message;
+    toast('❌ Gagal simpan: '+e.message);
+  }
+};
+
+// ─── ANALYSIS ──────────────────────────────────────────────
+function buildAnalysis(s) {
+  const entries=TOPICS.map(t=>({...t,v:s.topicMarks?.[t.id]})).filter(t=>t.v!==''&&t.v!==undefined&&t.v!==null);
+  if(!entries.length) return `<div class="sc"><h3>📊 Analisis Prestasi CLO1 (C3) Per Topik</h3><p style="color:#aaa;font-size:12px">Masukkan markah topik T1–T5 untuk lihat analisis.</p></div>`;
+  const sorted=[...entries].sort((a,b)=>parseFloat(a.v)-parseFloat(b.v));
+  const caS=caScore(s), faS=faScore(s);
+  return `<div class="sc">
+    <h3>📊 Analisis Prestasi CLO1 (C3 — Apply) Per Topik</h3>
+    <div style="background:#f7f8fa;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#555;line-height:1.8">
+      <b>CLO1:</b> Apply concepts and principles of electrical circuit theorems and laws to DC electrical circuits using various methods and approaches<br>
+      <b>Domain:</b> Cognitive · <b>Level:</b> C3 (Apply) — Bloom's Taxonomy
+    </div>
+    ${sorted.map(t=>{const lv=level(t.v),w=Math.min(100,parseFloat(t.v));return `
+    <div class="arow">
+      <div class="atopic" style="font-size:11px">${t.name}</div>
+      <div class="atrack"><div class="afill" style="width:${w}%;background:${lv.color}"></div></div>
+      <div class="apct" style="color:${lv.color}">${parseFloat(t.v).toFixed(0)}%</div>
+      <span class="abadge" style="background:${lv.bg};color:${lv.color}">${lv.label}</span>
+    </div>`;}).join('')}
+    <div style="border-top:1px solid #f0f0f0;margin-top:14px;padding-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div style="font-size:11px;color:#555">
+        <b>CA (Test + EoC):</b> <span style="color:${caS!==null&&caS<CA_PASS?'#d32f2f':'#388e3c'};font-weight:700">${caS!==null?caS+'/'+CA_MAX:'—'} ${caS!==null?caS>=CA_PASS?'✅':'❌':''}</span>
+      </div>
+      <div style="font-size:11px;color:#555">
+        <b>FA (Final Exam):</b> <span style="color:${faS!==null&&faS<FA_PASS?'#d32f2f':'#388e3c'};font-weight:700">${faS!==null?faS+'/'+FA_MAX:'—'} ${faS!==null?faS>=FA_PASS?'✅':'❌':''}</span>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ─── CQI ───────────────────────────────────────────────────
+function buildCQI(s) {
+  const ca=caScore(s), fa=faScore(s), ps=passStatus(s);
+  const weakTopics=TOPICS.map(t=>({...t,v:s.topicMarks?.[t.id]}))
+    .filter(t=>t.v!==''&&t.v!==undefined&&t.v!==null&&parseFloat(t.v)<60)
+    .sort((a,b)=>parseFloat(a.v)-parseFloat(b.v));
+
+  const hasAnyData = ca!==null || fa!==null || weakTopics.length>0;
+  if (!hasAnyData) return `<div class="sc"><h3>🎯 CQI Action Plan — CLO1 (C3)</h3><p style="color:#aaa;font-size:12px">Masukkan markah assessment dan topik untuk jana CQI Action Plan.</p></div>`;
+
+  const today=new Date();
+  const fmt=d=>d.toLocaleDateString('ms-MY',{day:'2-digit',month:'short',year:'numeric'});
+
+  // Assessment-level CQI (CA/FA gagal)
+  let assessCQI = '';
+  if (ca!==null && ca<CA_PASS) {
+    assessCQI += `<div class="cqi-item crit" style="margin-bottom:10px">
+      <div class="cqi-topic crit">⚠️ CA Gagal — Test &amp; End of Chapter (Skor: ${ca}/${CA_MAX})</div>
+      <div style="font-size:11px;color:#888;margin-bottom:8px">CLO1 · C3 · CA Score: <b style="color:#d32f2f">${ca}/${CA_MAX}</b> → Target: <b style="color:#388e3c">≥${CA_PASS}/${CA_MAX}</b></div>
+      <ul class="cqi-acts">
+        <li><span class="ctype" style="background:#ffebee;color:#d32f2f">URGENT</span>Semak semula jawapan Test &amp; End of Chapter — kenal pasti soalan C3 (Apply) mana yang gagal</li>
+        <li><span class="ctype" style="background:#f3e5f5;color:#7b1fa2">Diagnosis</span>Pelajar gagal pada aras C3 (Apply) — kemungkinan kefahaman asas C1/C2 tidak kukuh</li>
+        <li><span class="ctype" style="background:#e3f2fd;color:#1565c0">Remediation</span>Sesi remediation fokus kepada kemahiran "Apply" — beri soalan berasaskan konteks / situasi baru</li>
+        <li><span class="ctype" style="background:#e8f5e9;color:#2e7d32">Latihan</span>Berikan soalan latihan aras C3: Gubah semula litar, cari arus/voltan dalam litar baru</li>
+      </ul>
+      <div class="coutcome">✅ Expected: CA Score meningkat kepada ≥${CA_PASS}/${CA_MAX} — pelajar mampu menjawab soalan Apply level dalam Test dan End of Chapter.</div>
+    </div>`;
+  }
+  if (fa!==null && fa<FA_PASS) {
+    assessCQI += `<div class="cqi-item crit" style="margin-bottom:10px">
+      <div class="cqi-topic crit">⚠️ FA Gagal — Final Examination (Skor: ${fa}/${FA_MAX})</div>
+      <div style="font-size:11px;color:#888;margin-bottom:8px">CLO1 · C3 · FA Score: <b style="color:#d32f2f">${fa}/${FA_MAX}</b> → Target: <b style="color:#388e3c">≥${FA_PASS}/${FA_MAX}</b></div>
+      <ul class="cqi-acts">
+        <li><span class="ctype" style="background:#ffebee;color:#d32f2f">URGENT</span>Analisis skrip Final Exam — kenal pasti soalan CLO1 C3 yang gagal dijawab</li>
+        <li><span class="ctype" style="background:#f3e5f5;color:#7b1fa2">Diagnosis</span>Semak sama ada pelajar gagal pada soalan teori (C1/C2) atau soalan analisis (C3/C4)</li>
+        <li><span class="ctype" style="background:#e3f2fd;color:#1565c0">Remediation</span>Program remediation intensif sebelum supplementary exam — fokus CLO1 C3</li>
+        <li><span class="ctype" style="background:#e8f5e9;color:#2e7d32">Latihan</span>Past year questions Final Exam — latih cara kerja yang sistematik (tunjuk semua langkah)</li>
+        <li><span class="ctype" style="background:#fff3e0;color:#e65100">Rujukan</span>Nilsson &amp; Riedel "Electric Circuits" · Hayt "Engineering Circuit Analysis" — Chapter berkaitan CLO1</li>
+      </ul>
+      <div class="coutcome">✅ Expected: FA Score meningkat kepada ≥${FA_PASS}/${FA_MAX} dalam supplementary exam. Pelajar boleh apply theorems dalam situasi baru.</div>
+    </div>`;
+  }
+
+  // Topic-level CQI
+  let topicCQI = '';
+  if (weakTopics.length) {
+    topicCQI = weakTopics.map((t,i)=>{
+      const isCrit=parseFloat(t.v)<40;
+      const start=new Date(today); start.setDate(today.getDate()+i*7);
+      const end=new Date(start); end.setDate(start.getDate()+6);
+      const target=Math.min(parseFloat(t.v)+25,75);
+      const acts=cqiActions(t,isCrit);
+      return `<div class="cqi-item ${isCrit?'crit':'weak'}">
+        <div class="cqi-topic ${isCrit?'crit':''}">${isCrit?'⚠️':'📌'} Topik ${i+1}: ${t.name}
+          <span style="font-size:10px;font-weight:400;color:#888">&nbsp;[CLO1 · ${t.bloom}] &nbsp;${fmt(start)}–${fmt(end)}</span>
+        </div>
+        <div style="font-size:11px;color:#888;margin-bottom:8px">
+          Markah semasa: <b style="color:${level(t.v).color}">${parseFloat(t.v).toFixed(0)}%</b> → Target: <b style="color:#388e3c">≥${target}%</b>
+        </div>
+        <ul class="cqi-acts">${acts.map(a=>`<li><span class="ctype" style="background:${a.c}22;color:${a.c}">${a.t}</span>${a.d}</li>`).join('')}</ul>
+        <div class="coutcome">✅ Expected: Markah "${t.id.toUpperCase()}" meningkat daripada ${parseFloat(t.v).toFixed(0)}% kepada ≥${target}% dalam tempoh 1 minggu.</div>
+      </div>`;
+    }).join('');
+  }
+
+  const rev=new Date(today); rev.setDate(today.getDate()+(weakTopics.length||1)*7+7);
+  const allGood = ca>=CA_PASS && fa>=FA_PASS && !weakTopics.length;
+
+  return `<div class="sc">
+    <h3>🎯 CQI Action Plan — CLO1 (C3: Apply)</h3>
+    <div style="background:#e8eaf6;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#3949ab;line-height:1.8">
+      <b>Fokus CQI:</b> CLO1 · Cognitive Domain · C3 (Apply) — Bloom's Taxonomy<br>
+      Pelajar perlu menunjukkan keupayaan <b>mengaplikasikan</b> theorems &amp; laws dalam situasi litar DC yang baru.
+    </div>
+    ${allGood
+      ? '<div style="text-align:center;padding:20px"><span style="font-size:36px">🎉</span><p style="color:#388e3c;font-weight:700;margin-top:10px">CLO1 dicapai! Pelajar lulus CA dan FA dengan semua topik memuaskan.</p></div>'
+      : assessCQI + (weakTopics.length ? `<div style="font-size:12px;font-weight:700;color:#1a237e;margin:14px 0 8px">📚 Remediation Per Topik:</div>${topicCQI}` : '')
+    }
+    <div class="cqi-item" style="border-color:#1565c0;background:#e3f2fd;margin-top:10px">
+      <div class="cqi-topic" style="color:#1565c0">📋 Penilaian Semula CLO1 — ${fmt(rev)}</div>
+      <ul class="cqi-acts">
+        <li><span class="ctype" style="background:#e3f2fd;color:#1565c0">Re-Test</span>Jalankan semula Test / soalan C3 untuk ukur peningkatan CLO1 selepas remediation</li>
+        <li><span class="ctype" style="background:#e3f2fd;color:#1565c0">Report</span>Dokumen perbandingan skor CLO1 sebelum &amp; selepas untuk rekod CQI semester</li>
+        <li><span class="ctype" style="background:#e3f2fd;color:#1565c0">OBE Check</span>Pastikan CLO1 attainment ≥50% untuk semua pelajar — update rekod OBE/PO mapping</li>
+      </ul>
+    </div>
+  </div>`;
+}
+
+function cqiActions(t,isCrit){
+  const a=[];
+
+  // Per-topic specific CQI content based on DET10103 course content
+  const spec = {
+    t1:{
+      diagnosis:"Semak jawapan Test/EoC — kenal pasti sama ada pelajar lemah pada: kira R setara (siri/selari), formula R=ρL/A, transformasi Delta-Star, atau kira kuasa & tenaga (P=VI).",
+      remediation:"Remediation T1: Latih litar siri-selari dengan contoh sebenar. Fokus: cari R_total, V, I guna Ohm's Law. Praktik transformasi Delta-Star langkah demi langkah.",
+      latihan:"(1) Bina litar siri-selari, kira R_eq, I, V drop setiap perintang. (2) Kira rintangan dawai guna R=ρL/A. (3) Tukar Delta ke Star untuk litar yang diberikan.",
+      rujukan:"Modul DET10103 T1 · Hughes 'Electrical Technology' Ch.1–3 · YouTube: 'Series Parallel Circuits' (The Organic Chemistry Tutor)"
+    },
+    t2:{
+      diagnosis:"Semak jawapan — kenal pasti sama ada pelajar lemah pada: persamaan KVL/KCL (silap tanda), nodal/mesh analysis, atau tidak dapat tentukan V_TH dan R_TH dengan betul.",
+      remediation:"Remediation T2: Latih KVL/KCL pada litar mudah dahulu, kemudian nodal/mesh. Tunjukkan langkah demi langkah cara cari V_TH, R_TH, I_N, R_N dan penukaran Thevenin↔Norton.",
+      latihan:"(1) Guna KVL/KCL — cari semua arus unknown dalam litar. (2) Buat analisis nodal: cari voltan nod. (3) Cari V_TH & R_TH untuk litar yang diberikan. (4) Tukar Thevenin → Norton.",
+      rujukan:"Modul DET10103 T2 · Hughes 'Electrical Technology' Ch.4–6 · YouTube: 'Thevenin Norton Theorem' (The Organic Chemistry Tutor)"
+    },
+    t3:{
+      diagnosis:"Semak jawapan — kenal pasti sama ada pelajar keliru: formula C siri vs selari, tidak faham keluk cas/nyahcas (V-t, I-t), atau gagal kira τ=RC dan tenaga E=½CV².",
+      remediation:"Remediation T3: Terangkan semula proses cas/nyahcas menggunakan graf. Tunjukkan cara kira τ=RC, v(t)=V(1-e^{-t/τ}), i(t), dan tenaga tersimpan E=½CV².",
+      latihan:"(1) Kira C_eq untuk siri & selari. (2) Beri litar RC, kira τ, voltan pada t tertentu. (3) Lukis keluk cas kapasitor. (4) Kira tenaga tersimpan pada voltan yang diberikan.",
+      rujukan:"Modul DET10103 T3 · Hughes 'Electrical Technology' Ch.7 · YouTube: 'RC Circuit Charging Discharging' (The Organic Chemistry Tutor)"
+    },
+    t4:{
+      diagnosis:"Semak jawapan — kenal pasti sama ada pelajar keliru: formula L siri vs selari, tidak faham e=-N·dΦ/dt, atau gagal kira τ=L/R dan tenaga E=½LI².",
+      remediation:"Remediation T4: Terangkan induktor vs kapasitor (analog). Tunjukkan keluk naik/turun arus dalam litar RL. Praktik kira τ=L/R, i(t)=I(1-e^{-t/τ}), e.m.f. teraruh, dan tenaga.",
+      latihan:"(1) Kira L_eq untuk siri & selari. (2) Beri litar RL, kira τ, arus pada t tertentu. (3) Kira tenaga tersimpan E=½LI². (4) Kira e.m.f. teraruh guna e=-L·di/dt.",
+      rujukan:"Modul DET10103 T4 · Hughes 'Electrical Technology' Ch.8 · YouTube: 'RL Circuit Transient Analysis' (The Organic Chemistry Tutor)"
+    },
+    t5:{
+      diagnosis:"Semak jawapan — kenal pasti sama ada pelajar tidak faham: hubungan MMF-Φ-keengganan, arah medan magnet (Right-Hand Rule), atau gagal apply Faraday's Law & Lenz's Law.",
+      remediation:"Remediation T5: Terangkan analogi litar magnet vs elektrik (MMF≡EMF, Φ≡I, S≡R). Latih Right-Hand Rule dengan gambar rajah. Tunjukkan cara apply Faraday's Law dan Lenz's Law.",
+      latihan:"(1) Kira Φ, MMF, keengganan dalam litar magnet mudah. (2) Tentukan arah medan magnet guna Right-Hand Rule. (3) Kira e.m.f. teraruh guna Faraday's Law. (4) Tentukan arah arus guna Lenz's Law.",
+      rujukan:"Modul DET10103 T5 · Chapman 'Electric Machinery Fundamentals' Ch.1 · YouTube: 'Magnetic Circuits' (Michel van Biezen)"
+    },
+  };
+
+  const s = spec[t.id] || {
+    diagnosis: `Semak jawapan untuk kenal pasti kesilapan dalam "${t.name}"`,
+    remediation: `Sesi remediation C3 (Apply) 60–90 minit`,
+    latihan: `Set soalan Apply berperingkat untuk topik ini`,
+    rujukan: `Rujuk Modul DET10103 ${t.id.toUpperCase()}`
+  };
+
+  if(isCrit) a.push({t:'URGENT',   c:'#d32f2f', d:`Markah ${parseFloat(t.v).toFixed(0)}% — kritikal! Hubungi pelajar segera dan jadualkan sesi dalam 3 hari.`});
+  a.push({t:'Diagnosis',   c:'#7b1fa2', d: s.diagnosis});
+  a.push({t:'Remediation', c:'#1565c0', d: s.remediation});
+  a.push({t:'Latihan C3',  c:'#2e7d32', d: s.latihan});
+  a.push({t:'Rujukan',     c:'#e65100', d: s.rujukan});
+  if(isCrit) a.push({t:'Progress', c:'#00838f', d:`Mini-quiz ${t.id.toUpperCase()} selepas setiap sesi — semak sama ada pelajar boleh apply dalam konteks litar baru`});
+  return a;
+}
+
+// ─── EXPORT PDF ────────────────────────────────────────────
+window.exportPDF = function() {
+  if (!students.length) { toast('⚠️ Tiada data'); return; }
+  const date = new Date().toLocaleDateString('ms-MY');
+  const isoDate = new Date().toISOString().split('T')[0];
+
+  // Build table rows
+  const rows = students.map((s, i) => {
+    const ca = caScore(s), fa = faScore(s), ps = passStatus(s), tA = topicAvg(s);
+    const caLv = level(ca!==null?Math.round(ca/CA_MAX*100):null);
+    const faLv = level(fa!==null?Math.round(fa/FA_MAX*100):null);
+    const tLv = level(tA);
+    const topicMarksCells = TOPICS.map(t => {
+      const v = s.topicMarks?.[t.id];
+      const lv = level(v === '' || v === undefined || v === null ? null : parseFloat(v));
+      return `<td style="text-align:center;color:${lv.color}">${v !== '' && v !== undefined && v !== null ? parseFloat(v).toFixed(0) + '%' : '—'}</td>`;
+    }).join('');
+    return `<tr>
+      <td style="text-align:center;color:#888">${i + 1}</td>
+      <td><b style="color:#1a237e">${s.name}</b><br><span style="font-size:9pt;color:#888">${s.studentId}${s.className ? ' · ' + s.className : ''}</span></td>
+      <td style="text-align:center;color:${caLv.color};font-weight:700">${ca !== null ? ca + '/' + CA_MAX : '—'}</td>
+      <td style="text-align:center;color:${faLv.color};font-weight:700">${fa !== null ? fa + '/' + FA_MAX : '—'}</td>
+      <td style="text-align:center;color:${tLv.color};font-weight:700">${tA !== null ? tA + '%' : '—'}</td>
+      ${topicMarksCells}
+      <td style="text-align:center"><span style="background:${ps.bg};color:${ps.color};padding:2px 8px;border-radius:10px;font-size:8.5pt;font-weight:700">${ps.label}</span></td>
+    </tr>`;
+  }).join('');
+
+  // Stats summary
+  let crit = 0, weak = 0, good = 0;
+  students.forEach(s => { const m = avgMarks(s); if (m === null) return; if (m < 40) crit++; else if (m < 60) weak++; else good++; });
+  const overallPass = students.filter(s => passStatus(s).label === 'LULUS').length;
+
+  const html = `<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<title>Laporan EC1 — ${isoDate}</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "Segoe UI", Arial, sans-serif; font-size: 10pt; color: #1f2328; }
+  @page { size: A4 landscape; margin: 14mm 12mm; }
+  h1 { font-size: 14pt; color: #1a237e; margin-bottom: 3px; }
+  h2 { font-size: 10pt; color: #3949ab; margin-bottom: 10px; font-weight: 400; }
+  .meta { font-size: 9pt; color: #555; margin-bottom: 12px; line-height: 1.7; }
+  .summary { display: flex; gap: 10px; margin-bottom: 14px; }
+  .sbox { flex: 1; border: 1px solid #e5e7eb; border-radius: 6px; padding: 8px 10px; text-align: center; }
+  .sbox .n { font-size: 18pt; font-weight: 800; color: #1a237e; }
+  .sbox .l { font-size: 8pt; color: #888; margin-top: 2px; }
+  .sbox.red .n { color: #d32f2f; }
+  .sbox.orange .n { color: #f57c00; }
+  .sbox.green .n { color: #388e3c; }
+  table { width: 100%; border-collapse: collapse; font-size: 9pt; }
+  thead tr { background: #1a237e; color: #fff; }
+  thead th { padding: 7px 6px; text-align: left; font-weight: 700; font-size: 8.5pt; }
+  thead th.c { text-align: center; }
+  tbody tr:nth-child(even) { background: #f7f8fa; }
+  tbody td { padding: 6px 6px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+  .footer { margin-top: 14px; font-size: 8pt; color: #aaa; text-align: center; border-top: 1px solid #e5e7eb; padding-top: 8px; }
+  @media print {
+    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+  <h1>⚡ Laporan Prestasi Pelajar — Electric Circuit 1 (DET10103)</h1>
+  <h2>CLO1: Apply concepts and principles of electrical circuit theorems and laws to DC electrical circuits · C3 (Apply — Bloom's Taxonomy)</h2>
+  <div class="meta">
+    Tarikh: <b>${date}</b> &nbsp;|&nbsp; Assessment: Test (/15) + End of Chapter (/10) + Final Exam (/40) &nbsp;|&nbsp; Lulus CA: ≥${CA_PASS}/${CA_MAX} · Lulus FA: ≥${FA_PASS}/${FA_MAX} &nbsp;|&nbsp; Jumlah Pelajar: <b>${students.length}</b>
+  </div>
+  <div class="summary">
+    <div class="sbox"><div class="n">${students.length}</div><div class="l">Jumlah Pelajar</div></div>
+    <div class="sbox green"><div class="n">${overallPass}</div><div class="l">✅ Lulus CLO1</div></div>
+    <div class="sbox red"><div class="n">${students.length - overallPass}</div><div class="l">❌ Gagal CLO1</div></div>
+    <div class="sbox red"><div class="n">${crit}</div><div class="l">⚠ Kritikal &lt;40%</div></div>
+    <div class="sbox orange"><div class="n">${weak}</div><div class="l">Lemah 40–59%</div></div>
+    <div class="sbox green"><div class="n">${good}</div><div class="l">Lulus ≥60%</div></div>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:26px">#</th>
+        <th>Nama Pelajar / ID</th>
+        <th class="c">CA Score</th>
+        <th class="c">FA Score</th>
+        <th class="c">Avg Topik</th>
+        ${TOPICS.map(t => `<th class="c">${t.id.toUpperCase()}</th>`).join('')}
+        <th class="c">Status CLO1</th>
+      </tr>
+    </thead>
+    <tbody>${rows}</tbody>
+  </table>
+  <div class="footer">Dijana oleh EC1 Student Performance Analyzer · DET10103 · ${date}</div>
+</body>
+</html>`;
+
+  // Open in hidden iframe and trigger print
+  let iframe = document.getElementById('pdf-iframe');
+  if (!iframe) {
+    iframe = document.createElement('iframe');
+    iframe.id = 'pdf-iframe';
+    iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;border:none';
+    document.body.appendChild(iframe);
+  }
+  iframe.srcdoc = html;
+  iframe.onload = () => {
+    setTimeout(() => {
+      iframe.contentWindow.focus();
+      iframe.contentWindow.print();
+    }, 300);
+  };
+  toast('🖨️ Sedia untuk print / save PDF...');
+};
+
+// ─── EXPORT TXT ────────────────────────────────────────────
+window.exportReport = function() {
+  if(!students.length){toast('⚠️ Tiada data');return;}
+  const date=new Date().toLocaleDateString('ms-MY');
+  let txt=`LAPORAN PRESTASI PELAJAR — ELECTRIC CIRCUIT 1 (DET10103)\n`;
+  txt+=`CLO1: Apply concepts and principles of electrical circuit theorems (C3 — Bloom)\n`;
+  txt+=`Assessment: Test (/15) + End of Chapter (/10) + Final Exam (/40)\n`;
+  txt+=`Lulus CA: >=${CA_PASS}/${CA_MAX}  |  Lulus FA: >=${FA_PASS}/${FA_MAX}\n`;
+  txt+=`Tarikh: ${date}\n${'='.repeat(56)}\n\n`;
+  students.forEach((s,i)=>{
+    const ca=caScore(s), fa=faScore(s), ps=passStatus(s);
+    txt+=`${i+1}. ${s.name} (${s.studentId})${s.className?' | '+s.className:''}\n`;
+    txt+=`   CA Score (Test+EoC): ${ca!==null?ca+'/'+CA_MAX:'—'} [${ca===null?'—':ca>=CA_PASS?'LULUS':'GAGAL'}]\n`;
+    txt+=`   FA Score (Final):    ${fa!==null?fa+'/'+FA_MAX:'—'} [${fa===null?'—':fa>=FA_PASS?'LULUS':'GAGAL'}]\n`;
+    txt+=`   Status CLO1:         ${ps.label}\n`;
+    ASSESSMENTS.forEach(a=>{const v=s.marks?.[a.id];if(v!==''&&v!==undefined&&v!==null)txt+=`   ${a.name} [${a.type}]: ${v}/${a.max}\n`;});
+    const wk=TOPICS.filter(t=>{const v=s.topicMarks?.[t.id];return v!==''&&v!==undefined&&v!==null&&parseFloat(v)<60;});
+    if(wk.length) txt+=`   ⚠ Topik Lemah (C3): ${wk.map(t=>t.id.toUpperCase()+' ('+s.topicMarks[t.id]+'%)').join(', ')}\n`;
+    txt+='\n';
+  });
+  const blob=new Blob([txt],{type:'text/plain'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`EC1_Laporan_${new Date().toISOString().split('T')[0]}.txt`;
+  a.click();
+  toast('📤 Laporan diexport!');
+};
+
+// ─── TOAST ─────────────────────────────────────────────────
+window.toast = function(msg) {
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),3000);
+};
+</script>
+</body>
+</html>
